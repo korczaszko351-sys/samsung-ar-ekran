@@ -1,0 +1,163 @@
+name: Build Android APK
+
+# Builds installable Android packages for Samsung AR Ekran without EAS, EAS login or any
+# Expo cloud account: `expo prebuild` generates the native project, Gradle compiles it, and
+# the APKs are published as downloadable workflow artifacts.
+#
+#   push to main / manual run  -> debug + release APK artifacts
+#   tag v*                     -> the same APKs, attached to a GitHub Release
+#
+# Optional secrets (Settings -> Secrets and variables -> Actions):
+#   ANDROID_KEYSTORE_BASE64      base64 of a .keystore file (keytool -genkeypair)
+#   ANDROID_KEYSTORE_PASSWORD    store password
+#   ANDROID_KEY_ALIAS            key alias
+#   ANDROID_KEY_PASSWORD         key password
+# Without them the release APK is signed with the throwaway debug key: installable for
+# testing, but not upgradeable in place and not accepted by Google Play.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Assemble APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        # npm ci is used when a lockfile is committed (reproducible installs);
+        # the repository works without one, so fall back to npm install.
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Generate native Android project
+        # --no-install: dependencies are already in node_modules from the install step.
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('android/**/*.gradle*') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Build debug and release APKs
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
+
+      - name: Sign the release APK
+        id: sign
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          STORE="$RUNNER_TEMP/release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE"
+
+          RELEASE_APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          echo "Signing $RELEASE_APK"
+
+          APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          ZIPALIGN=$(find "$ANDROID_SDK_ROOT/build-tools" -name zipalign -type f | sort -V | tail -n 1)
+
+          mkdir -p dist
+          "$ZIPALIGN" -p -f 4 "$RELEASE_APK" dist/unsigned-aligned.apk
+          "$APKSIGNER" sign \
+            --ks "$STORE" \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
+            --key-pass "pass:$ANDROID_KEY_PASSWORD" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out dist/app-release-signed.apk \
+            dist/unsigned-aligned.apk
+          "$APKSIGNER" verify --print-certs dist/app-release-signed.apk
+          rm -f dist/unsigned-aligned.apk
+          rm -f "$STORE"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Collect APKs
+        id: collect
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          VERSION=$(node -p "require('./app.json').expo.version")
+          DEBUG_APK=$(find android/app/build/outputs/apk/debug -name '*.apk' | head -n 1)
+          cp "$DEBUG_APK" "dist/samsung-ar-ekran-${VERSION}-debug.apk"
+
+          if [ "${{ steps.sign.outputs.signed }}" = "true" ]; then
+            cp dist/app-release-signed.apk "dist/samsung-ar-ekran-${VERSION}-release.apk"
+            rm -f dist/app-release-signed.apk
+            echo "release signing: custom keystore"
+          else
+            RELEASE_APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+            cp "$RELEASE_APK" "dist/samsung-ar-ekran-${VERSION}-release-debugsigned.apk"
+            echo "release signing: debug key (no keystore secrets configured)"
+          fi
+
+          ls -lh dist
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: samsung-ar-ekran-apk-${{ steps.collect.outputs.version }}-${{ github.run_number }}
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attach APKs to a release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
+          body: |
+            Installable Android packages for Samsung AR Ekran.
+
+            The app draws a virtual screen over the camera image and stabilises it with the
+            accelerometer — it does not use ARCore or Google Play Services for AR.
