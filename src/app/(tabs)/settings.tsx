@@ -25,10 +25,9 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <Card>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Kalibracja projekcji</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Kalibracja śledzenia</Text>
         <Text style={[styles.body, { color: colors.muted }]}>
-          Te wartości są punktem wyjścia dla każdej planszy. Możesz je zmieniać także w trakcie
-          projekcji.
+          Te wartości są punktem wyjścia dla każdej projekcji. Możesz je zmieniać także w trakcie.
         </Text>
         <SliderRow
           label="Pole widzenia aparatu"
@@ -40,11 +39,13 @@ export default function SettingsScreen() {
           onValueChange={(v) => update({ fov: v })}
         />
         <Text style={[styles.hint, { color: colors.muted }]}>
-          Większość telefonów Galaxy ma aparat główny o pionowym polu widzenia 45–55°. Zmniejsz,
-          jeśli plansza wydaje się za duża.
+          To najważniejszy parametr śledzenia: z niego wynika ogniskowa kamery, a więc to, jak
+          mocno obraz „ucieka” przy obrocie telefonu. Większość Galaxy ma aparat główny o
+          pionowym polu widzenia 45–55°. Jeśli obraz przesuwa się za mocno — zmniejsz, jeśli za
+          słabo — zwiększ.
         </Text>
         <SliderRow
-          label="Wygładzanie czujników"
+          label="Wygładzanie czujnika"
           value={settings.smoothing}
           minimumValue={0}
           maximumValue={0.9}
@@ -52,25 +53,54 @@ export default function SettingsScreen() {
           format={(v) => (v === 0 ? 'brak' : v.toFixed(2))}
           onValueChange={(v) => update({ smoothing: v })}
         />
+        <Text style={[styles.hint, { color: colors.muted }]}>
+          Więcej wygładzania = spokojniejszy obraz, ale wolniejsza reakcja na ruch. 0,2–0,4 to
+          dobry kompromis na lekcji.
+        </Text>
         <SwitchRow
-          label="Odwróć kierunek przechyłu"
-          description="Włącz, jeśli plansza ucieka w przeciwną stronę niż telefon"
-          value={settings.invertTilt}
-          onValueChange={(value) => update({ invertTilt: value })}
+          label="Odwróć kierunek śledzenia"
+          description="Włącz, jeśli obraz ucieka w przeciwną stronę niż telefon"
+          value={settings.invertRotation}
+          onValueChange={(value) => update({ invertRotation: value })}
         />
         <SwitchRow
-          label="Stabilizacja czujnikami domyślnie"
-          value={settings.sensorFollow}
-          onValueChange={(value) => update({ sensorFollow: value })}
+          label="Śledzenie powierzchni domyślnie"
+          value={settings.tracking}
+          onValueChange={(value) => update({ tracking: value })}
         />
+        <SwitchRow
+          label="Odczyt techniczny w projekcji"
+          description="Pokazuje tryb śledzenia, FOV i przechył"
+          value={settings.diagnostics}
+          onValueChange={(value) => update({ diagnostics: value })}
+        />
+      </Card>
+
+      <Card>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Jak zaznaczyć powierzchnię</Text>
+        <Text style={[styles.body, { color: colors.muted }]}>
+          1. Uruchom projekcję i skieruj aparat na stół, podłogę albo ścianę.
+        </Text>
+        <Text style={[styles.body, { color: colors.muted }]}>
+          2. Przeciągnij cztery uchwyty (1–4) na rogi tej powierzchni — kolejność: lewy górny,
+          prawy górny, prawy dolny, lewy dolny.
+        </Text>
+        <Text style={[styles.body, { color: colors.muted }]}>
+          3. Zatwierdź. Obraz zostanie wpisany w ten czworokąt w perspektywie i będzie na nim
+          leżał, gdy obrócisz telefon.
+        </Text>
+        <Text style={[styles.hint, { color: colors.muted }]}>
+          Im dokładniej zaznaczysz rogi, tym lepiej obraz „przylega” do powierzchni. Po
+          zatwierdzeniu możesz zaznaczyć powierzchnię ponownie w każdej chwili.
+        </Text>
       </Card>
 
       <Card>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Uprawnienia</Text>
         <Text style={[styles.body, { color: colors.muted }]}>
-          Aparat jest potrzebny jako tło projekcji, a czujniki ruchu do stabilizacji planszy.
-          Oba uprawnienia możesz w każdej chwili odebrać w ustawieniach systemu — aplikacja
-          pokaże wtedy ciemne tło i nadal wyświetli planszę.
+          Aparat jest potrzebny jako tło projekcji, a czujnik obrotu do utrzymania obrazu na
+          powierzchni. Oba uprawnienia możesz w każdej chwili odebrać w ustawieniach systemu —
+          aplikacja pokaże wtedy ciemne tło i nadal wyświetli obraz.
         </Text>
         <Button
           title="Otwórz ustawienia systemowe"
@@ -89,15 +119,15 @@ export default function SettingsScreen() {
         </Text>
         <Text style={[styles.body, { color: colors.muted }]}>{device.os}</Text>
         <Text style={[styles.body, { color: colors.muted }]}>
-          Wersja aplikacji {Constants.expoConfig?.version ?? '1.0.0'}
+          Wersja aplikacji {Constants.expoConfig?.version ?? '2.0.0'}
         </Text>
       </Card>
 
       <Card>
         <Text style={[styles.cardTitle, { color: colors.text }]}>O aplikacji</Text>
         <Text style={[styles.body, { color: colors.muted }]}>
-          Samsung AR Ekran rysuje wirtualny ekran na obrazie z kamery i stabilizuje go
-          akcelerometrem. Nie używa ARCore, nie wysyła danych do internetu i nie wymaga konta.
+          Samsung AR Ekran wpisuje obraz w zaznaczoną płaską powierzchnię i utrzymuje go tam
+          czujnikiem obrotu. Nie używa ARCore, nie wysyła danych do internetu i nie wymaga konta.
         </Text>
       </Card>
     </Screen>

@@ -12,17 +12,17 @@ const STEPS = [
   {
     icon: 'albums-outline' as const,
     title: '1. Przygotuj planszę',
-    text: 'Tekst, kolor tła albo zdjęcie z galerii. Plansza to treść, którą zobaczysz na wirtualnym ekranie.',
+    text: 'Tekst, kolor tła albo zdjęcie z galerii. Plansza to treść, którą zobaczysz na powierzchni.',
   },
   {
     icon: 'scan-outline' as const,
-    title: '2. Wyceluj telefon',
-    text: 'Skieruj aparat na ścianę lub tablicę. Obraz z kamery jest tłem projekcji — bez ARCore i bez dodatkowych usług Google.',
+    title: '2. Zaznacz powierzchnię',
+    text: 'Skieruj aparat na stół, podłogę albo ścianę i przeciągnij cztery narożniki na rogi tej powierzchni.',
   },
   {
     icon: 'move-outline' as const,
-    title: '3. Ustaw i zablokuj',
-    text: 'Przeciągnij planszę palcem, dopasuj rozmiar i odległość. Stabilizacja czujnikami utrzyma ją w miejscu, gdy ruszysz telefonem.',
+    title: '3. Obraz leży na powierzchni',
+    text: 'Plansza jest wpisana w zaznaczony czworokąt w perspektywie i zostaje na miejscu, gdy obrócisz telefon.',
   },
 ];
 
@@ -39,19 +39,16 @@ export default function HomeScreen() {
         <View style={styles.heroGlow} />
         <View style={styles.heroBadge}>
           <Ionicons name="phone-portrait-outline" size={13} color={projectionColors.cyan} />
-          <Text style={styles.heroBadgeText}>{device.isSamsung ? 'Samsung Galaxy' : device.manufacturer}</Text>
+          <Text style={styles.heroBadgeText}>
+            {device.isSamsung ? 'Samsung Galaxy' : device.manufacturer}
+          </Text>
         </View>
-        <Text style={[styles.heroTitle, { color: colors.text }]}>Wirtualny ekran{`\n`}bez ARCore</Text>
+        <Text style={[styles.heroTitle, { color: colors.text }]}>Ekran na{`\n`}powierzchni</Text>
         <Text style={[styles.heroText, { color: colors.muted }]}>
-          Projekcja obrazu na dowolną powierzchnię, którą widzi aparat. Działa na telefonach
-          Samsung, na których Środowisko Google AR jest niedostępne, zablokowane albo po prostu
-          niepotrzebne.
+          Obraz kładzie się perspektywicznie na stole, podłodze albo ścianie i zostaje na niej
+          zakotwiczony, gdy ruszasz telefonem. Bez ARCore i bez Środowiska Google AR.
         </Text>
-        <Button
-          title="Uruchom projekcję"
-          icon="play"
-          onPress={() => router.push('/projector')}
-        />
+        <Button title="Uruchom projekcję" icon="play" onPress={() => router.push('/projector')} />
         <Text style={[styles.heroMeta, { color: colors.muted }]}>
           {active ? `Na ekranie: ${active.title}` : `Zapisane plansze: ${screens.length}`}
         </Text>
@@ -75,9 +72,10 @@ export default function HomeScreen() {
       <Card>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Czym to się różni od ARCore</Text>
         <Text style={[styles.body, { color: colors.muted }]}>
-          ARCore rozpoznaje płaszczyzny i mierzy głębię. Tutaj tego nie ma: powierzchnię wybierasz
-          sam, a rozmiar planszy wynika z podanej odległości i pola widzenia aparatu. Dzięki temu
-          aplikacja nie wymaga Środowiska Google AR ani Play Services for AR.
+          ARCore sam znajduje płaszczyzny i mierzy głębię. Tutaj powierzchnię wskazujesz czterema
+          narożnikami, a obraz jest w nią wpisywany transformacją rzutową (homografią) — tą samą
+          matematyką, której używa AR, tylko bez usług Google. Czujnik obrotu utrzymuje obraz na
+          powierzchni przy obrocie telefonu.
         </Text>
         <View style={styles.chips}>
           {['Bez ARCore', 'Bez internetu', 'Dane tylko na telefonie'].map((chip) => (
@@ -130,14 +128,25 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(34,211,238,0.12)',
   },
-  heroBadgeText: { color: projectionColors.cyan, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  heroBadgeText: {
+    color: projectionColors.cyan,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
   heroTitle: { fontSize: 27, fontWeight: '800', lineHeight: 33, letterSpacing: -0.4 },
   heroText: { fontSize: 14, lineHeight: 20 },
   heroMeta: { fontSize: 12 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
   body: { fontSize: 14, lineHeight: 20 },
   step: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
-  stepIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  stepIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stepText: { flex: 1, gap: 2 },
   stepTitle: { fontSize: 14, fontWeight: '700' },
   stepBody: { fontSize: 13, lineHeight: 18 },
