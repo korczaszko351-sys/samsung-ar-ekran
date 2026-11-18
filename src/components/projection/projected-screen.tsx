@@ -1,46 +1,42 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { projectionColors } from '@/constants/theme';
 import type { ProjectionContent } from '@/lib/types';
 
 type Props = {
   content: ProjectionContent;
-  /** Width of the projected board in pixels. */
+  /** Width of the image plane before the homography warps it. */
   width: number;
+  height: number;
   /** 0–1 opacity of the whole image. */
   opacity: number;
-  /** Left edge inside the stage. */
-  left: number;
-  /** Top edge inside the stage. */
-  top: number;
-  /** Rotate to follow the phone's pitch (degrees). */
-  rotateX: number;
-  rotateY: number;
-  /** Show a quick-fade pick-and-place hint. */
-  onLayout?: (event: LayoutChangeEvent) => void;
+  /**
+   * Column-major 4x4 that maps this view onto the surface quad. Null means "no usable
+   * quad yet", in which case the image is drawn flat and centred.
+   */
+  matrix: number[] | null;
 };
 
 /**
  * The projected image: a translucent board with a glowing bezel, the user's content and a
  * soft vignette so it reads as light on a surface rather than a flat sticker.
+ *
+ * The perspective comes from `matrix` — a real homography, so the image lies on the
+ * surface instead of being a rectangle with a rotation.
  */
-export function ProjectedScreen({ content, width, opacity, left, top, rotateX, rotateY, onLayout }: Props) {
+export function ProjectedScreen({ content, width, height, opacity, matrix }: Props) {
   const mirrored = content.mirror;
-  const height = width * (9 / 16);
   return (
     <View
       pointerEvents="none"
-      onLayout={onLayout}
       style={[
         styles.board,
         {
           width,
           height,
-          left,
-          top,
           opacity,
-          transform: [{ perspective: 900 }, { rotateX: `${rotateX}deg` }, { rotateY: `${rotateY}deg` }],
+          transform: matrix ? [{ matrix }] : [],
         },
       ]}>
       <View style={[styles.surface, { backgroundColor: content.color }]}>
@@ -78,7 +74,7 @@ export function ProjectedScreen({ content, width, opacity, left, top, rotateX, r
 }
 
 const styles = StyleSheet.create({
-  board: { position: 'absolute', borderRadius: 10 },
+  board: { position: 'absolute', top: 0, left: 0, borderRadius: 10 },
   surface: {
     flex: 1,
     borderRadius: 8,

@@ -1,16 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { spacing } from '@/constants/theme';
-import { clamp } from '@/lib/projection';
 import type { ProjectionContent, ProjectionSettings } from '@/lib/types';
 
 type Props = {
   settings: ProjectionSettings;
   content: ProjectionContent;
-  /** Scale of the board relative to the camera image height. */
-  scale: number;
-  distance: number;
-  tilt: { pitch: number; roll: number; heading: number | null; available: boolean };
+  /** True when the surface is anchored and the image is being warped onto it. */
+  anchored: boolean;
+  pose: { pitchDeg: number; rollDeg: number; available: boolean };
+  tracking: string;
 };
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -23,26 +22,22 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /** Compact technical readout: what the app knows about the projection right now. */
-export function ProjectionHud({ settings, content, scale, distance, tilt }: Props) {
-  const coverage = Math.round(clamp(scale, 0, 2) * 100);
+export function ProjectionHud({ settings, content, anchored, pose, tracking }: Props) {
   return (
     <View pointerEvents="none" style={styles.hud}>
       <Row label="Ekran" value={content.title} />
-      <Row label="Zajętość kadru" value={`${coverage}%`} />
-      <Row label="Odległość" value={`${distance.toFixed(1)} m`} />
+      <Row label="Powierzchnia" value={anchored ? 'zakotwiczona' : 'nie zaznaczona'} />
+      <Row label="Śledzenie" value={tracking} />
       <Row label="FOV aparatu" value={`${settings.fov}°`} />
+      <Row label="Rozmiar" value={`${settings.size.toFixed(2)}×`} />
       <Row label="Krycie" value={`${Math.round(settings.opacity * 100)}%`} />
       <Row
         label="Przechył"
         value={
-          tilt.available
-            ? `p ${tilt.pitch.toFixed(0)}° · r ${tilt.roll.toFixed(0)}°`
-            : 'brak czujników'
+          pose.available
+            ? `p ${pose.pitchDeg.toFixed(0)}° · r ${pose.rollDeg.toFixed(0)}°`
+            : 'brak czujnika'
         }
-      />
-      <Row
-        label="Azymut"
-        value={tilt.heading === null ? 'brak magnetometru' : `${tilt.heading.toFixed(0)}°`}
       />
     </View>
   );
