@@ -84,9 +84,22 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
 
+      # `secrets` may not be read inside an `if:` expression, so the presence of the
+      # keystore is detected here and published as a step output instead.
+      - name: Detect signing secrets
+        id: keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Sign the release APK
         id: sign
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: steps.keystore.outputs.present == 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
