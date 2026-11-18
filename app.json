@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Samsung AR Ekran",
+    "slug": "samsung-ar-ekran",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "samsungarekan",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0E1016",
+    "ios": {
+      "bundleIdentifier": "com.korczaszko.samsungarekan",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Aplikacja używa aparatu jako tła, na którym rysowany jest wirtualny ekran projekcji.",
+        "NSMotionUsageDescription": "Czujniki ruchu pozwalają utrzymać wirtualny ekran w jednym miejscu podczas obracania telefonu."
+      }
+    },
+    "android": {
+      "package": "com.korczaszko.samsungarekan",
+      "permissions": ["android.permission.CAMERA"],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0E1016",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 120
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Aplikacja używa aparatu jako tła dla wirtualnego ekranu projekcji.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wybierz obraz z galerii, który ma być wyświetlany na wirtualnym ekranie."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
